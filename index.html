@@ -21,10 +21,6 @@
             font-size: 14px;
         }
 
-        .top-bar span {
-            margin-right: 15px;
-        }
-
         .container {
             max-width: 900px;
             margin: 30px auto;
@@ -32,15 +28,6 @@
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.08);
             padding: 30px 40px 40px;
-        }
-
-        h1 {
-            margin-top: 0;
-        }
-
-        .develops {
-            margin-top: 10px;
-            font-size: 14px;
         }
 
         .tag {
@@ -54,53 +41,43 @@
             font-size: 12px;
         }
 
-        .field-row {
-            margin-top: 20px;
-        }
-
-        label {
-            font-size: 14px;
-        }
-
-        input[type="text"], input[type="email"] {
+        input {
             padding: 8px 10px;
             border-radius: 4px;
             border: 1px solid #ccc;
             font-size: 14px;
             min-width: 260px;
+            margin-top: 5px;
         }
 
-        button {
-            border: none;
-            border-radius: 4px;
-            padding: 10px 18px;
-            font-size: 14px;
-            cursor: pointer;
+        input.error {
+            border: 2px solid #ff3b3b;
+            background: #ffe6e6;
+        }
+
+        .error-text {
+            color: #d40000;
+            font-size: 13px;
+            display: none;
+            margin-top: 4px;
         }
 
         .primary-btn {
             background: #0052cc;
             color: #fff;
-            margin-top: 20px;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 20px;
+            cursor: pointer;
+            margin-top: 25px;
         }
 
-        .hidden {
-            display: none;
-        }
-
-        .status-row {
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            font-size: 14px;
-        }
+        .hidden { display: none; }
 
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
             gap: 10px;
-            justify-items: center;
             max-width: 420px;
             margin: 0 auto;
         }
@@ -108,321 +85,282 @@
         .card {
             width: 80px;
             height: 80px;
-            border-radius: 6px;
             background: #f0f0f0;
+            font-size: 32px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 30px;
             cursor: pointer;
-            transition: background 0.15s ease, transform 0.1s ease;
-            user-select: none;
+            transition: 0.15s;
         }
 
-        .card.open {
-            background: #dcdde1;
-            transform: scale(1.03);
-        }
-
-        .card.matched {
-            background: #4cd137;
-            color: #ffffff;
-            cursor: default;
-            transform: none;
-        }
+        .card.open { background: #dcdde1; transform: scale(1.05); }
+        .card.matched { background: #4cd137; color: white; }
 
         #result-screen {
             text-align: center;
-            padding: 40px;
-            animation: fadeIn 0.6s ease;
+            animation: fadeIn .6s ease;
         }
 
         @keyframes fadeIn {
-            from {opacity: 0; transform: translateY(20px);}
-            to   {opacity: 1; transform: translateY(0);}
+            from { opacity: 0; transform: translateY(15px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
     </style>
 
-    <!-- Конфеті -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
 
 <div class="top-bar">
-    <div><strong>Меморі</strong></div>
+    <strong>Меморі</strong>
     <div>
-        <span>Рівень: <span id="top-level">0</span> / 6</span>
-        <span>Час: <span id="top-time">00:00</span></span>
+        Рівень: <span id="top-level">0</span> / 6
+        &nbsp; | &nbsp;
+        Час: <span id="top-time">00:00</span>
     </div>
 </div>
 
-<!-- Стартовий екран -->
+<!-- 🟦 СТАРТОВИЙ ЕКРАН -->
 <div class="container" id="start-screen">
     <h1>Memory – тренувальний тест</h1>
-    <p>Тренажер для розвитку короткочасної пам'яті.</p>
 
-    <div class="develops">
+    <p>
         <span class="tag">Короткочасна пам’ять</span>
         <span class="tag">Спостережливість</span>
         <span class="tag">Образне мислення</span>
-    </div>
+    </p>
 
-    <div class="field-row">
-        <label for="player-name">Ім’я учасника:</label><br>
-        <input type="text" id="player-name" placeholder="Введіть ім’я">
-    </div>
+    <label>Ім’я учасника:</label><br>
+    <input id="player-name" type="text" placeholder="Введіть ім’я">
 
-    <div class="field-row">
-        <label for="player-email">Електронна пошта (необов’язково):</label><br>
-        <input type="email" id="player-email" placeholder="email@example.com">
-    </div>
+    <br><br>
+
+    <label>Електронна пошта (обов’язково):</label><br>
+    <input id="player-email" type="email" placeholder="email@example.com">
+    <div id="email-error" class="error-text">Будь ласка, введіть коректну електронну пошту.</div>
 
     <button class="primary-btn" id="start-btn">Почати тренування</button>
 </div>
 
-<!-- Екран гри -->
+<!-- 🟦 ЕКРАН ГРИ -->
 <div class="container hidden" id="game-screen">
     <h2>Знайдіть пари карток</h2>
 
-    <div class="status-row">
-        <div>Рівень: <span id="level-label">1</span> / 6</div>
-        <div>Пар знайдено: <span id="matches-label">0</span></div>
-        <div>Спроб: <span id="moves-label">0</span></div>
-    </div>
+    <p>Рівень: <span id="level-label">1</span> / 6<br>
+       Пар знайдено: <span id="matches-label">0</span><br>
+       Спроб: <span id="moves-label">0</span>
+    </p>
 
     <div class="grid" id="grid"></div>
 </div>
 
-<!-- Екран результатів -->
+<!-- 🟦 РЕЗУЛЬТАТ -->
 <div class="container hidden" id="result-screen">
     <h2>🎉 Вітаємо! Ви пройшли всі рівні!</h2>
+
     <p id="res-name"></p>
+    <p id="res-email"></p>
     <p id="res-time"></p>
     <p id="res-moves"></p>
 </div>
 
 <script>
+/* -------------------- НАЛАШТУВАННЯ -------------------- */
 const TOTAL_LEVELS = 6;
-const baseCardsCount = 8;
-const cardsIncrement = 4;
-
 const icons = ["✈️","☂️","🚀","😀","🐱","⭐","⚽","🍎","🎧","📚","🚗","🌈","🎲","🏀","🎁"];
 
-let playerName = "";
-let playerEmail = "";
-let currentLevel = 0;
-let cards = [];
-let openCards = [];
-let matchedPairs = 0;
-let moves = 0;
-let totalSeconds = 0;
-let timerId = null;
+/* -------------------- ЗМІННІ ГРИ -------------------- */
+let nameUser = "", emailUser = "";
+let level = 1, moves = 0, matched = 0;
+let cards = [], openCards = [];
+let totalSeconds = 0, timer = null;
 
+/* -------------------- DOM -------------------- */
 const startScreen = document.getElementById("start-screen");
 const gameScreen  = document.getElementById("game-screen");
-const resultScreen = document.getElementById("result-screen");
+const resultScreen= document.getElementById("result-screen");
 
-const startBtn = document.getElementById("start-btn");
-const playerInput = document.getElementById("player-name");
-const playerEmailInput = document.getElementById("player-email");
-
-const gridEl = document.getElementById("grid");
-const levelLabel = document.getElementById("level-label");
+const grid         = document.getElementById("grid");
+const levelLabel   = document.getElementById("level-label");
 const matchesLabel = document.getElementById("matches-label");
-const movesLabel = document.getElementById("moves-label");
-const topLevel = document.getElementById("top-level");
-const topTime = document.getElementById("top-time");
+const movesLabel   = document.getElementById("moves-label");
+const topLevel     = document.getElementById("top-level");
+const topTime      = document.getElementById("top-time");
 
-const resName = document.getElementById("res-name");
-const resTime = document.getElementById("res-time");
-const resMoves = document.getElementById("res-moves");
+const emailField = document.getElementById("player-email");
+const emailError = document.getElementById("email-error");
 
-function shuffle(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
+/* -------------------- СТАРТ -------------------- */
+document.getElementById("start-btn").onclick = () => {
+    const email = emailField.value.trim();
+
+    if (!email || !email.includes("@") || !email.includes(".")) {
+        emailField.classList.add("error");
+        emailError.style.display = "block";
+        return;
     }
-    return arr;
-}
 
-function formatTime(seconds) {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return (m < 10 ? "0"+m : m)+":"+(s < 10 ? "0"+s : s);
-}
+    emailField.classList.remove("error");
+    emailError.style.display = "none";
 
+    nameUser  = document.getElementById("player-name").value.trim() || "—";
+    emailUser = email;
+
+    startScreen.classList.add("hidden");
+    gameScreen.classList.remove("hidden");
+
+    startTimer();
+    loadLevel();
+};
+
+/* -------------------- ТАЙМЕР -------------------- */
 function startTimer() {
-    timerId = setInterval(() => {
+    timer = setInterval(() => {
         totalSeconds++;
         topTime.textContent = formatTime(totalSeconds);
     }, 1000);
 }
 
-function stopTimer() {
-    clearInterval(timerId);
+function stopTimer() { clearInterval(timer); }
+
+function formatTime(s) {
+    const m = Math.floor(s / 60);
+    return `${m<10?"0":""}${m}:${(s%60)<10?"0":""}${s%60}`;
 }
 
-function startGame() {
-    startScreen.classList.add("hidden");
-    gameScreen.classList.remove("hidden");
-    resultScreen.classList.add("hidden");
+/* -------------------- РІВНІ -------------------- */
+function loadLevel() {
+    const pairs = 4 + (level - 1) * 2; // 8, 12, 16...
 
-    currentLevel = 1;
-    totalSeconds = 0;
-    moves = 0;
-    topTime.textContent = "00:00";
-    topLevel.textContent = currentLevel;
-
-    startTimer();
-    initLevel();
-}
-
-function initLevel() {
-    const cardsCount = baseCardsCount + (currentLevel - 1) * cardsIncrement;
-    const pairsCount = cardsCount / 2;
-
-    cards = shuffle([
-        ...icons.slice(0, pairsCount),
-        ...icons.slice(0, pairsCount)
-    ]);
-
+    cards = shuffle([...icons.slice(0, pairs), ...icons.slice(0, pairs)]);
+    matched = 0;
     openCards = [];
-    matchedPairs = 0;
+    moves = 0;
 
-    levelLabel.textContent = currentLevel;
-    matchesLabel.textContent = `0 / ${pairsCount}`;
+    levelLabel.textContent = level;
+    matchesLabel.textContent = `${matched} / ${pairs}`;
     movesLabel.textContent = moves;
+    topLevel.textContent = level;
 
-    gridEl.innerHTML = "";
-    cards.forEach((icon, index) => {
+    grid.innerHTML = "";
+    cards.forEach((icon, idx) => {
         const c = document.createElement("div");
         c.className = "card";
-        c.dataset.index = index.toString();
-        gridEl.appendChild(c);
+        c.dataset.index = idx;
+        c.onclick = () => reveal(idx);
+        grid.appendChild(c);
     });
 }
 
-function revealCard(index) {
-    const cardElements = document.querySelectorAll(".card");
-    const c = cardElements[index];
+function shuffle(arr) {
+    for (let i=arr.length-1; i>0; i--) {
+        const j = Math.floor(Math.random()* (i+1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
 
-    if (!c || c.classList.contains("open") || c.classList.contains("matched")) return;
+/* -------------------- ГРА -------------------- */
+function reveal(i) {
+    const elements = document.querySelectorAll(".card");
+    const card = elements[i];
+
+    if (card.classList.contains("matched") || card.classList.contains("open")) return;
     if (openCards.length === 2) return;
 
-    c.classList.add("open");
-    c.textContent = cards[index];
-    openCards.push({ index, value: cards[index], element: c });
+    card.classList.add("open");
+    card.textContent = cards[i];
+    openCards.push({i, card, value: cards[i]});
 
-    if (openCards.length === 2) {
-        moves++;
-        movesLabel.textContent = moves;
-        checkMatch();
-    }
+    if (openCards.length === 2) checkMatch();
 }
 
 function checkMatch() {
+    moves++;
+    movesLabel.textContent = moves;
+
     const [a, b] = openCards;
+
     if (a.value === b.value) {
-        a.element.classList.remove("open");
-        b.element.classList.remove("open");
-        a.element.classList.add("matched");
-        b.element.classList.add("matched");
+        a.card.classList.add("matched");
+        b.card.classList.add("matched");
+        matched++;
 
-        matchedPairs++;
-        matchesLabel.textContent = `${matchedPairs} / ${cards.length / 2}`;
-
+        matchesLabel.textContent = `${matched} / ${cards.length / 2}`;
         openCards = [];
 
-        if (matchedPairs === cards.length / 2) {
-            setTimeout(nextLevelOrFinish, 600);
-        }
+        if (matched === cards.length / 2) setTimeout(nextLevel, 400);
+
     } else {
         setTimeout(() => {
-            a.element.classList.remove("open");
-            b.element.classList.remove("open");
-            a.element.textContent = "";
-            b.element.textContent = "";
+            a.card.classList.remove("open");
+            b.card.classList.remove("open");
+            a.card.textContent = "";
+            b.card.textContent = "";
             openCards = [];
-        }, 600);
+        }, 500);
     }
 }
 
-function nextLevelOrFinish() {
-    if (currentLevel < TOTAL_LEVELS) {
-        currentLevel++;
-        topLevel.textContent = currentLevel;
-        initLevel();
+/* -------------------- ПЕРЕХІД МІЖ РІВНЯМИ -------------------- */
+function nextLevel() {
+    if (level < TOTAL_LEVELS) {
+        level++;
+        loadLevel();
     } else {
-        stopTimer();
-
-        gameScreen.classList.add("hidden");
-        resultScreen.classList.remove("hidden");
-
-        resName.textContent = `Учасник: ${playerName}`;
-        resTime.textContent = `Час: ${formatTime(totalSeconds)}`;
-        resMoves.textContent = `Спроб: ${moves}`;
-
-        shootConfetti();
-        sendResultsToChatbot(playerName, playerEmail, totalSeconds, moves);
+        finishGame();
     }
 }
 
-function shootConfetti() {
-    if (typeof confetti !== "function") return;
+/* -------------------- ФІНІШ -------------------- */
+function finishGame() {
+    stopTimer();
 
-    const duration = 2500;
-    const end = Date.now() + duration;
+    gameScreen.classList.add("hidden");
+    resultScreen.classList.remove("hidden");
+
+    document.getElementById("res-name").textContent = `Учасник: ${nameUser}`;
+    document.getElementById("res-email").textContent = `Email: ${emailUser}`;
+    document.getElementById("res-time").textContent = `Час: ${formatTime(totalSeconds)}`;
+    document.getElementById("res-moves").textContent = `Спроб: ${moves}`;
+
+    confettiBurst();
+    sendToTelegram();
+}
+
+/* -------------------- КОНФЕТІ -------------------- */
+function confettiBurst() {
+    const end = Date.now() + 1500;
 
     (function frame() {
         confetti({
-            particleCount: 6,
+            particleCount: 8,
             spread: 360,
-            ticks: 70,
-            origin: { x: Math.random(), y: Math.random() - 0.2 }
+            origin: { x: Math.random(), y: Math.random() - 0.3 }
         });
 
         if (Date.now() < end) requestAnimationFrame(frame);
     })();
 }
 
-function sendResultsToChatbot(name, email, timeSeconds, movesCount) {
-    const TOKEN  = '8517013691:AAElXeP_-V0-XqTIKJ9nFMUkwvXaW3qiziQ';
-    const CHAT_ID = '1350269784';
-
-    const safeName = name && name.trim() ? name.trim() : '—';
-    const safeEmail = email && email.trim() ? email.trim() : '—';
+/* -------------------- TELEGRAM -------------------- */
+function sendToTelegram() {
+    const TOKEN = "8517013691:AAElXeP_-V0-XqTIKJ9nFMUkwvXaW3qiziQ";
+    const CHAT  = "1350269784";
 
     const text =
-        '🧠 Результати Memory-тесту\n\n' +
-        `👤 Учасник: ${safeName}\n` +
-        `✉️ Пошта: ${safeEmail}\n` +
-        `⏱ Час: ${formatTime(timeSeconds)} (${timeSeconds} секунд)\n` +
-        `🔄 Спроб: ${movesCount}\n\n` +
-        'Збережено автоматично ✔️';
+        "🧠 Результати Memory-тесту\n\n" +
+        `👤 Ім’я: ${nameUser}\n` +
+        `✉️ Пошта: ${emailUser}\n` +
+        `⏱ Час: ${formatTime(totalSeconds)} (${totalSeconds} c)\n` +
+        `🔄 Спроб: ${moves}\n\n` +
+        "✔ Тест завершено";
 
-    const url =
-        `https://api.telegram.org/bot${TOKEN}/sendMessage` +
-        `?chat_id=${CHAT_ID}` +
-        `&text=${encodeURIComponent(text)}`;
-
-    const img = new Image();
-    img.src = url;
+    const url = `https://api.telegram.org/bot${TOKEN}/sendMessage?chat_id=${CHAT}&text=${encodeURIComponent(text)}`;
+    new Image().src = url;
 }
-
-startBtn.addEventListener("click", () => {
-    playerName = playerInput.value.trim() || "—";
-    playerEmail = playerEmailInput.value.trim() || "";
-    startGame();
-});
-
-gridEl.addEventListener("click", e => {
-    const card = e.target.closest(".card");
-    if (!card) return;
-    const index = parseInt(card.dataset.index, 10);
-    if (!Number.isNaN(index)) {
-        revealCard(index);
-    }
-});
 </script>
 </body>
 </html>
