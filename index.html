@@ -72,6 +72,17 @@
             margin-top: 25px;
         }
 
+        .secondary-btn {
+            background: #f0f0f0;
+            color: #222;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 14px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
         .hidden { display: none; }
 
         .grid {
@@ -101,6 +112,17 @@
         #result-screen {
             text-align: center;
             animation: fadeIn .6s ease;
+        }
+
+        #details-block {
+            margin-top: 15px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        #details-block ul {
+            padding-left: 20px;
+            margin: 8px 0 0;
         }
 
         @keyframes fadeIn {
@@ -166,6 +188,9 @@
     <p id="res-email"></p>
     <p id="res-time"></p>
     <p id="res-moves"></p>
+
+    <button id="details-btn" class="secondary-btn">Докладно</button>
+    <div id="details-block" class="hidden"></div>
 </div>
 
 <script>
@@ -176,7 +201,10 @@ const icons = ["✈️","☂️","🚀","😀","🐱","⭐","⚽","🍎","🎧",
 /* ---------------- СТАН ---------------- */
 let nameUser = "", emailUser = "";
 let level = 1;
-let moves = 0;          // спроби поточного рівня
+let moves = 0;              // спроби поточного рівня
+let totalMoves = 0;         // загальна кількість спроб за всі рівні
+let movesPerLevel = new Array(TOTAL_LEVELS).fill(0);
+
 let matched = 0;
 let cards = [];
 let openCards = [];
@@ -198,11 +226,19 @@ const topTime      = document.getElementById("top-time");
 const emailField = document.getElementById("player-email");
 const emailError = document.getElementById("email-error");
 
+const resName  = document.getElementById("res-name");
+const resEmail = document.getElementById("res-email");
+const resTime  = document.getElementById("res-time");
+const resMoves = document.getElementById("res-moves");
+
+const detailsBtn   = document.getElementById("details-btn");
+const detailsBlock = document.getElementById("details-block");
+
 /* ---------------- СТАРТ ---------------- */
 document.getElementById("start-btn").onclick = () => {
     const email = emailField.value.trim();
 
-    // e-mail обов’язковий
+    // e-mail обовʼязковий
     if (!email || !email.includes("@") || !email.includes(".")) {
         emailField.classList.add("error");
         emailError.style.display = "block";
@@ -215,12 +251,21 @@ document.getElementById("start-btn").onclick = () => {
     nameUser  = document.getElementById("player-name").value.trim() || "—";
     emailUser = email;
 
+    // Скидаємо загальні лічильники
+    level = 1;
+    moves = 0;
+    totalMoves = 0;
+    movesPerLevel = new Array(TOTAL_LEVELS).fill(0);
+    matched = 0;
+    totalSeconds = 0;
+
     startScreen.classList.add("hidden");
     gameScreen.classList.remove("hidden");
+    resultScreen.classList.add("hidden");
+    detailsBlock.classList.add("hidden");
+    detailsBlock.innerHTML = "";
+    detailsBtn.textContent = "Докладно";
 
-    // починаємо гру
-    level = 1;
-    totalSeconds = 0;
     startTimer();
     loadLevel();
 };
@@ -245,10 +290,10 @@ function formatTime(s) {
 
 /* ---------------- РІВЕНЬ ---------------- */
 function loadLevel() {
-    const pairs = 4 + (level - 1) * 2;   // 4,6,8,10,12,14 пар
+    const pairs = 4 + (level - 1) * 2;   // 4,6,8,10,12,14 пар = 8..28 карток
 
-    // скидаємо стани саме для ЦЬОГО рівня
-    moves   = 0;        // ❗ спроби тільки поточного рівня
+    // скидаємо стани для поточного рівня
+    moves   = 0;
     matched = 0;
     openCards = [];
 
@@ -301,7 +346,10 @@ function reveal(i) {
 
 function checkMatch() {
     const [a, b] = openCards;
+
+    // рахуємо спробу порівняння (загальну і для рівня)
     moves++;
+    totalMoves++;
     movesLabel.textContent = moves;
 
     if (a.value === b.value) {
@@ -330,9 +378,14 @@ function checkMatch() {
 
 /* ---------------- ПЕРЕХІД МІЖ РІВНЯМИ ---------------- */
 function nextLevel() {
+    // зберігаємо спроби для цього рівня
+    if (level >= 1 && level <= TOTAL_LEVELS) {
+        movesPerLevel[level - 1] = moves;
+    }
+
     if (level < TOTAL_LEVELS) {
         level++;
-        loadLevel();          // тут moves знову стане 0 всередині loadLevel()
+        loadLevel();
     } else {
         finishGame();
     }
@@ -342,14 +395,18 @@ function nextLevel() {
 function finishGame() {
     stopTimer();
 
+    // на всяк випадок ще раз фіксуємо останній рівень
+    if (level >= 1 && level <= TOTAL_LEVELS) {
+        movesPerLevel[level - 1] = moves;
+    }
+
     gameScreen.classList.add("hidden");
     resultScreen.classList.remove("hidden");
 
-    document.getElementById("res-name").textContent  = `Учасник: ${nameUser}`;
-    document.getElementById("res-email").textContent = `Email: ${emailUser}`;
-    document.getElementById("res-time").textContent  = `Час: ${formatTime(totalSeconds)}`;
-    document.getElementById("res-moves").textContent =
-        `Спроб на останньому рівні: ${moves}`;
+    resName.textContent  = `Учасник: ${nameUser}`;
+    resEmail.textContent = `Email: ${emailUser}`;
+    resTime.textContent  = `Час: ${formatTime(totalSeconds)}`;
+    resMoves.textContent = `Загальна кількість спроб: ${totalMoves}`;
 
     confettiBurst();
     sendToTelegram();
@@ -371,18 +428,41 @@ function confettiBurst() {
     })();
 }
 
+/* ---------------- КНОПКА "ДОКЛАДНО" ---------------- */
+detailsBtn.addEventListener("click", () => {
+    if (detailsBlock.classList.contains("hidden")) {
+        let html = "<strong>Кількість спроб за рівнями:</strong><ul>";
+        for (let i = 0; i < TOTAL_LEVELS; i++) {
+            html += `<li>Рівень ${i + 1}: ${movesPerLevel[i]} спроб</li>`;
+        }
+        html += "</ul>";
+        detailsBlock.innerHTML = html;
+        detailsBlock.classList.remove("hidden");
+        detailsBtn.textContent = "Сховати";
+    } else {
+        detailsBlock.classList.add("hidden");
+        detailsBtn.textContent = "Докладно";
+    }
+});
+
 /* ---------------- TELEGRAM ---------------- */
 function sendToTelegram() {
     const TOKEN = "8517013691:AAElXeP_-V0-XqTIKJ9nFMUkwvXaW3qiziQ";
     const CHAT  = "1350269784";
 
-    const text =
+    let text =
         "🧠 Результати Memory-тесту\n\n" +
         `👤 Ім’я: ${nameUser}\n` +
         `✉️ Пошта: ${emailUser}\n` +
         `⏱ Час: ${formatTime(totalSeconds)} (${totalSeconds} секунд)\n` +
-        `🔄 Спроб на останньому рівні: ${moves}\n\n` +
-        "✔ Тест завершено";
+        `🔄 Загальна кількість спроб: ${totalMoves}\n\n` +
+        "📊 Спроби за рівнями:\n";
+
+    for (let i = 0; i < TOTAL_LEVELS; i++) {
+        text += ` • Рівень ${i + 1}: ${movesPerLevel[i]} спроб\n`;
+    }
+
+    text += "\n✔ Тест завершено";
 
     const url = `https://api.telegram.org/bot${TOKEN}/sendMessage` +
                 `?chat_id=${CHAT}&text=${encodeURIComponent(text)}`;
