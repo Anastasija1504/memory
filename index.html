@@ -109,6 +109,7 @@
         }
     </style>
 
+    <!-- Бібліотека для конфеті -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
@@ -122,7 +123,7 @@
     </div>
 </div>
 
-<!-- 🟦 СТАРТОВИЙ ЕКРАН -->
+<!-- СТАРТОВИЙ ЕКРАН -->
 <div class="container" id="start-screen">
     <h1>Memory – тренувальний тест</h1>
 
@@ -132,31 +133,32 @@
         <span class="tag">Образне мислення</span>
     </p>
 
-    <label>Ім’я учасника:</label><br>
+    <label for="player-name">Ім’я учасника:</label><br>
     <input id="player-name" type="text" placeholder="Введіть ім’я">
 
     <br><br>
 
-    <label>Електронна пошта (обов’язково):</label><br>
+    <label for="player-email">Електронна пошта (обов’язково):</label><br>
     <input id="player-email" type="email" placeholder="email@example.com">
     <div id="email-error" class="error-text">Будь ласка, введіть коректну електронну пошту.</div>
 
     <button class="primary-btn" id="start-btn">Почати тренування</button>
 </div>
 
-<!-- 🟦 ЕКРАН ГРИ -->
+<!-- ЕКРАН ГРИ -->
 <div class="container hidden" id="game-screen">
     <h2>Знайдіть пари карток</h2>
 
-    <p>Рівень: <span id="level-label">1</span> / 6<br>
-       Пар знайдено: <span id="matches-label">0</span><br>
-       Спроб: <span id="moves-label">0</span>
+    <p>
+        Рівень: <span id="level-label">1</span> / 6<br>
+        Пар знайдено: <span id="matches-label">0</span><br>
+        Спроб на цьому рівні: <span id="moves-label">0</span>
     </p>
 
     <div class="grid" id="grid"></div>
 </div>
 
-<!-- 🟦 РЕЗУЛЬТАТ -->
+<!-- ЕКРАН РЕЗУЛЬТАТУ -->
 <div class="container hidden" id="result-screen">
     <h2>🎉 Вітаємо! Ви пройшли всі рівні!</h2>
 
@@ -167,17 +169,21 @@
 </div>
 
 <script>
-/* -------------------- НАЛАШТУВАННЯ -------------------- */
+/* ---------------- НАЛАШТУВАННЯ ---------------- */
 const TOTAL_LEVELS = 6;
 const icons = ["✈️","☂️","🚀","😀","🐱","⭐","⚽","🍎","🎧","📚","🚗","🌈","🎲","🏀","🎁"];
 
-/* -------------------- ЗМІННІ ГРИ -------------------- */
+/* ---------------- СТАН ---------------- */
 let nameUser = "", emailUser = "";
-let level = 1, moves = 0, matched = 0;
-let cards = [], openCards = [];
-let totalSeconds = 0, timer = null;
+let level = 1;
+let moves = 0;          // спроби поточного рівня
+let matched = 0;
+let cards = [];
+let openCards = [];
+let totalSeconds = 0;
+let timer = null;
 
-/* -------------------- DOM -------------------- */
+/* ---------------- DOM ---------------- */
 const startScreen = document.getElementById("start-screen");
 const gameScreen  = document.getElementById("game-screen");
 const resultScreen= document.getElementById("result-screen");
@@ -192,10 +198,11 @@ const topTime      = document.getElementById("top-time");
 const emailField = document.getElementById("player-email");
 const emailError = document.getElementById("email-error");
 
-/* -------------------- СТАРТ -------------------- */
+/* ---------------- СТАРТ ---------------- */
 document.getElementById("start-btn").onclick = () => {
     const email = emailField.value.trim();
 
+    // e-mail обов’язковий
     if (!email || !email.includes("@") || !email.includes(".")) {
         emailField.classList.add("error");
         emailError.style.display = "block";
@@ -211,11 +218,14 @@ document.getElementById("start-btn").onclick = () => {
     startScreen.classList.add("hidden");
     gameScreen.classList.remove("hidden");
 
+    // починаємо гру
+    level = 1;
+    totalSeconds = 0;
     startTimer();
     loadLevel();
 };
 
-/* -------------------- ТАЙМЕР -------------------- */
+/* ---------------- ТАЙМЕР ---------------- */
 function startTimer() {
     timer = setInterval(() => {
         totalSeconds++;
@@ -223,76 +233,90 @@ function startTimer() {
     }, 1000);
 }
 
-function stopTimer() { clearInterval(timer); }
+function stopTimer() {
+    clearInterval(timer);
+}
 
 function formatTime(s) {
     const m = Math.floor(s / 60);
-    return `${m<10?"0":""}${m}:${(s%60)<10?"0":""}${s%60}`;
+    const ss = s % 60;
+    return (m < 10 ? "0" : "") + m + ":" + (ss < 10 ? "0" : "") + ss;
 }
 
-/* -------------------- РІВНІ -------------------- */
+/* ---------------- РІВЕНЬ ---------------- */
 function loadLevel() {
-    const pairs = 4 + (level - 1) * 2; // 8, 12, 16...
+    const pairs = 4 + (level - 1) * 2;   // 4,6,8,10,12,14 пар
 
-    cards = shuffle([...icons.slice(0, pairs), ...icons.slice(0, pairs)]);
+    // скидаємо стани саме для ЦЬОГО рівня
+    moves   = 0;        // ❗ спроби тільки поточного рівня
     matched = 0;
     openCards = [];
-    moves = 0;
 
-    levelLabel.textContent = level;
+    levelLabel.textContent   = level;
     matchesLabel.textContent = `${matched} / ${pairs}`;
-    movesLabel.textContent = moves;
-    topLevel.textContent = level;
+    movesLabel.textContent   = moves;
+    topLevel.textContent     = level;
 
+    // готуємо колоду
+    cards = shuffle([
+        ...icons.slice(0, pairs),
+        ...icons.slice(0, pairs)
+    ]);
+
+    // малюємо сітку
     grid.innerHTML = "";
     cards.forEach((icon, idx) => {
         const c = document.createElement("div");
         c.className = "card";
-        c.dataset.index = idx;
+        c.dataset.index = String(idx);
         c.onclick = () => reveal(idx);
         grid.appendChild(c);
     });
 }
 
 function shuffle(arr) {
-    for (let i=arr.length-1; i>0; i--) {
-        const j = Math.floor(Math.random()* (i+1));
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
         [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
 }
 
-/* -------------------- ГРА -------------------- */
+/* ---------------- ЛОГІКА ГРИ ---------------- */
 function reveal(i) {
-    const elements = document.querySelectorAll(".card");
-    const card = elements[i];
+    const cardEls = document.querySelectorAll(".card");
+    const card = cardEls[i];
 
-    if (card.classList.contains("matched") || card.classList.contains("open")) return;
+    if (!card || card.classList.contains("matched") || card.classList.contains("open")) return;
     if (openCards.length === 2) return;
 
     card.classList.add("open");
     card.textContent = cards[i];
-    openCards.push({i, card, value: cards[i]});
+    openCards.push({ index: i, card, value: cards[i] });
 
-    if (openCards.length === 2) checkMatch();
+    if (openCards.length === 2) {
+        checkMatch();
+    }
 }
 
 function checkMatch() {
+    const [a, b] = openCards;
     moves++;
     movesLabel.textContent = moves;
 
-    const [a, b] = openCards;
-
     if (a.value === b.value) {
+        a.card.classList.remove("open");
+        b.card.classList.remove("open");
         a.card.classList.add("matched");
         b.card.classList.add("matched");
-        matched++;
 
+        matched++;
         matchesLabel.textContent = `${matched} / ${cards.length / 2}`;
         openCards = [];
 
-        if (matched === cards.length / 2) setTimeout(nextLevel, 400);
-
+        if (matched === cards.length / 2) {
+            setTimeout(nextLevel, 400);
+        }
     } else {
         setTimeout(() => {
             a.card.classList.remove("open");
@@ -304,48 +328,50 @@ function checkMatch() {
     }
 }
 
-/* -------------------- ПЕРЕХІД МІЖ РІВНЯМИ -------------------- */
+/* ---------------- ПЕРЕХІД МІЖ РІВНЯМИ ---------------- */
 function nextLevel() {
     if (level < TOTAL_LEVELS) {
         level++;
-        loadLevel();
+        loadLevel();          // тут moves знову стане 0 всередині loadLevel()
     } else {
         finishGame();
     }
 }
 
-/* -------------------- ФІНІШ -------------------- */
+/* ---------------- ФІНІШ ---------------- */
 function finishGame() {
     stopTimer();
 
     gameScreen.classList.add("hidden");
     resultScreen.classList.remove("hidden");
 
-    document.getElementById("res-name").textContent = `Учасник: ${nameUser}`;
+    document.getElementById("res-name").textContent  = `Учасник: ${nameUser}`;
     document.getElementById("res-email").textContent = `Email: ${emailUser}`;
-    document.getElementById("res-time").textContent = `Час: ${formatTime(totalSeconds)}`;
-    document.getElementById("res-moves").textContent = `Спроб: ${moves}`;
+    document.getElementById("res-time").textContent  = `Час: ${formatTime(totalSeconds)}`;
+    document.getElementById("res-moves").textContent =
+        `Спроб на останньому рівні: ${moves}`;
 
     confettiBurst();
     sendToTelegram();
 }
 
-/* -------------------- КОНФЕТІ -------------------- */
+/* ---------------- КОНФЕТІ ---------------- */
 function confettiBurst() {
+    if (typeof confetti !== "function") return;
     const end = Date.now() + 1500;
 
     (function frame() {
         confetti({
             particleCount: 8,
             spread: 360,
+            ticks: 70,
             origin: { x: Math.random(), y: Math.random() - 0.3 }
         });
-
         if (Date.now() < end) requestAnimationFrame(frame);
     })();
 }
 
-/* -------------------- TELEGRAM -------------------- */
+/* ---------------- TELEGRAM ---------------- */
 function sendToTelegram() {
     const TOKEN = "8517013691:AAElXeP_-V0-XqTIKJ9nFMUkwvXaW3qiziQ";
     const CHAT  = "1350269784";
@@ -354,11 +380,13 @@ function sendToTelegram() {
         "🧠 Результати Memory-тесту\n\n" +
         `👤 Ім’я: ${nameUser}\n` +
         `✉️ Пошта: ${emailUser}\n` +
-        `⏱ Час: ${formatTime(totalSeconds)} (${totalSeconds} c)\n` +
-        `🔄 Спроб: ${moves}\n\n` +
+        `⏱ Час: ${formatTime(totalSeconds)} (${totalSeconds} секунд)\n` +
+        `🔄 Спроб на останньому рівні: ${moves}\n\n` +
         "✔ Тест завершено";
 
-    const url = `https://api.telegram.org/bot${TOKEN}/sendMessage?chat_id=${CHAT}&text=${encodeURIComponent(text)}`;
+    const url = `https://api.telegram.org/bot${TOKEN}/sendMessage` +
+                `?chat_id=${CHAT}&text=${encodeURIComponent(text)}`;
+
     new Image().src = url;
 }
 </script>
