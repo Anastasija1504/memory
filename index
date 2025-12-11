@@ -58,12 +58,16 @@
             margin-top: 20px;
         }
 
-        input[type="text"] {
+        label {
+            font-size: 14px;
+        }
+
+        input[type="text"], input[type="email"] {
             padding: 8px 10px;
             border-radius: 4px;
             border: 1px solid #ccc;
             font-size: 14px;
-            min-width: 220px;
+            min-width: 260px;
         }
 
         button {
@@ -139,6 +143,7 @@
         }
     </style>
 
+    <!-- Конфеті -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
@@ -151,6 +156,7 @@
     </div>
 </div>
 
+<!-- Стартовий екран -->
 <div class="container" id="start-screen">
     <h1>Memory – тренувальний тест</h1>
     <p>Тренажер для розвитку короткочасної пам'яті.</p>
@@ -162,13 +168,19 @@
     </div>
 
     <div class="field-row">
-        <label>Ім’я учасника:</label><br>
+        <label for="player-name">Ім’я учасника:</label><br>
         <input type="text" id="player-name" placeholder="Введіть ім’я">
+    </div>
+
+    <div class="field-row">
+        <label for="player-email">Електронна пошта (необов’язково):</label><br>
+        <input type="email" id="player-email" placeholder="email@example.com">
     </div>
 
     <button class="primary-btn" id="start-btn">Почати тренування</button>
 </div>
 
+<!-- Екран гри -->
 <div class="container hidden" id="game-screen">
     <h2>Знайдіть пари карток</h2>
 
@@ -181,6 +193,7 @@
     <div class="grid" id="grid"></div>
 </div>
 
+<!-- Екран результатів -->
 <div class="container hidden" id="result-screen">
     <h2>🎉 Вітаємо! Ви пройшли всі рівні!</h2>
     <p id="res-name"></p>
@@ -196,6 +209,7 @@ const cardsIncrement = 4;
 const icons = ["✈️","☂️","🚀","😀","🐱","⭐","⚽","🍎","🎧","📚","🚗","🌈","🎲","🏀","🎁"];
 
 let playerName = "";
+let playerEmail = "";
 let currentLevel = 0;
 let cards = [];
 let openCards = [];
@@ -210,6 +224,7 @@ const resultScreen = document.getElementById("result-screen");
 
 const startBtn = document.getElementById("start-btn");
 const playerInput = document.getElementById("player-name");
+const playerEmailInput = document.getElementById("player-email");
 
 const gridEl = document.getElementById("grid");
 const levelLabel = document.getElementById("level-label");
@@ -250,11 +265,11 @@ function stopTimer() {
 function startGame() {
     startScreen.classList.add("hidden");
     gameScreen.classList.remove("hidden");
+    resultScreen.classList.add("hidden");
 
     currentLevel = 1;
     totalSeconds = 0;
     moves = 0;
-
     topTime.textContent = "00:00";
     topLevel.textContent = currentLevel;
 
@@ -266,7 +281,11 @@ function initLevel() {
     const cardsCount = baseCardsCount + (currentLevel - 1) * cardsIncrement;
     const pairsCount = cardsCount / 2;
 
-    cards = shuffle([...icons.slice(0, pairsCount), ...icons.slice(0, pairsCount)]);
+    cards = shuffle([
+        ...icons.slice(0, pairsCount),
+        ...icons.slice(0, pairsCount)
+    ]);
+
     openCards = [];
     matchedPairs = 0;
 
@@ -278,7 +297,7 @@ function initLevel() {
     cards.forEach((icon, index) => {
         const c = document.createElement("div");
         c.className = "card";
-        c.dataset.index = index;
+        c.dataset.index = index.toString();
         gridEl.appendChild(c);
     });
 }
@@ -287,7 +306,7 @@ function revealCard(index) {
     const cardElements = document.querySelectorAll(".card");
     const c = cardElements[index];
 
-    if (c.classList.contains("open") || c.classList.contains("matched")) return;
+    if (!c || c.classList.contains("open") || c.classList.contains("matched")) return;
     if (openCards.length === 2) return;
 
     c.classList.add("open");
@@ -344,11 +363,13 @@ function nextLevelOrFinish() {
         resMoves.textContent = `Спроб: ${moves}`;
 
         shootConfetti();
-        sendResultsToChatbot(playerName, totalSeconds, moves);
+        sendResultsToChatbot(playerName, playerEmail, totalSeconds, moves);
     }
 }
 
 function shootConfetti() {
+    if (typeof confetti !== "function") return;
+
     const duration = 2500;
     const end = Date.now() + duration;
 
@@ -364,14 +385,17 @@ function shootConfetti() {
     })();
 }
 
-function sendResultsToChatbot(name, timeSeconds, movesCount) {
-
+function sendResultsToChatbot(name, email, timeSeconds, movesCount) {
     const TOKEN  = '8517013691:AAElXeP_-V0-XqTIKJ9nFMUkwvXaW3qiziQ';
     const CHAT_ID = '1350269784';
 
+    const safeName = name && name.trim() ? name.trim() : '—';
+    const safeEmail = email && email.trim() ? email.trim() : '—';
+
     const text =
         '🧠 Результати Memory-тесту\n\n' +
-        `👤 Учасник: ${name}\n` +
+        `👤 Учасник: ${safeName}\n` +
+        `✉️ Пошта: ${safeEmail}\n` +
         `⏱ Час: ${formatTime(timeSeconds)} (${timeSeconds} секунд)\n` +
         `🔄 Спроб: ${movesCount}\n\n` +
         'Збережено автоматично ✔️';
@@ -387,13 +411,17 @@ function sendResultsToChatbot(name, timeSeconds, movesCount) {
 
 startBtn.addEventListener("click", () => {
     playerName = playerInput.value.trim() || "—";
+    playerEmail = playerEmailInput.value.trim() || "";
     startGame();
 });
 
 gridEl.addEventListener("click", e => {
     const card = e.target.closest(".card");
     if (!card) return;
-    revealCard(parseInt(card.dataset.index));
+    const index = parseInt(card.dataset.index, 10);
+    if (!Number.isNaN(index)) {
+        revealCard(index);
+    }
 });
 </script>
 </body>
