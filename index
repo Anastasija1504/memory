@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Memory – тренувальний тест</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 0;
+            background: #f5f6fa;
+            color: #222;
+        }
+
+        .top-bar {
+            background: #2f3640;
+            color: #fff;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .top-bar span {
+            margin-right: 15px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            padding: 30px 40px 40px;
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        .develops {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .tag {
+            display: inline-block;
+            margin-right: 8px;
+            margin-top: 4px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: #e1f0ff;
+            color: #1e6fd9;
+            font-size: 12px;
+        }
+
+        .field-row {
+            margin-top: 20px;
+        }
+
+        label {
+            font-size: 14px;
+        }
+
+        input[type="text"] {
+            padding: 8px 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            min-width: 220px;
+        }
+
+        button {
+            border: none;
+            border-radius: 4px;
+            padding: 10px 18px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .primary-btn {
+            background: #0052cc;
+            color: #fff;
+            margin-top: 20px;
+        }
+
+        .primary-btn:disabled {
+            background: #a0a9b8;
+            cursor: not-allowed;
+        }
+
+        .small {
+            font-size: 12px;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .status-row {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            font-size: 14px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            justify-items: center;
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        .card {
+            width: 80px;
+            height: 80px;
+            border-radius: 6px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.1s ease;
+            user-select: none;
+        }
+
+        .card.open {
+            background: #dcdde1;
+            transform: scale(1.03);
+        }
+
+        .card.matched {
+            background: #4cd137;
+            color: #ffffff;
+            cursor: default;
+            transform: none;
+        }
+
+        .card.disabled {
+            pointer-events: none;
+        }
+
+        .footer-note {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* Екран результатів */
+        #result-screen {
+            text-align: center;
+            padding: 40px;
+            animation: fadeIn 0.6s ease;
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0; transform: translateY(20px);}
+            to   {opacity: 1; transform: translateY(0);}
+        }
+    </style>
+
+    <!-- бібліотека для конфеті -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+<div class="top-bar">
+    <div>
+        <strong>Меморі</strong>
+    </div>
+    <div>
+        <span>Рівень: <span id="top-level">0</span> / 6</span>
+        <span>Час: <span id="top-time">00:00</span></span>
+    </div>
+</div>
+
+<!-- Стартовий екран -->
+<div class="container" id="start-screen">
+    <h1>Memory – тренувальний тест</h1>
+    <p>Це онлайн-тренажер для розвитку пам’яті за типом класичної гри «знайди пару карток».</p>
+    <div class="develops">
+        <span>Розвиває:</span>
+        <span class="tag">Короткочасну пам’ять</span>
+        <span class="tag">Спостережливість</span>
+        <span class="tag">Образне мислення</span>
+    </div>
+
+    <div class="field-row">
+        <label for="player-name">Ім’я учасника:</label><br>
+        <input type="text" id="player-name" placeholder="Введіть ваше ім’я">
+    </div>
+
+    <button class="primary-btn" id="start-btn">Почати тренування</button>
+
+    <p class="small">
+        Після натискання кнопки «Почати тренування» запускається таймер.
+        Час не обмежений, але наприкінці буде зафіксовано, скільки секунд
+        витрачено на проходження всіх рівнів.
+    </p>
+</div>
+
+<!-- Екран гри -->
+<div class="container hidden" id="game-screen">
+    <h2>Знайдіть пари карток</h2>
+
+    <div class="status-row">
+        <div>Рівень: <span id="level-label">1</span> / 6</div>
+        <div>Пар знайдено: <span id="matches-label">0</span></div>
+        <div>Спроб: <span id="moves-label">0</span></div>
+    </div>
+
+    <div class="grid" id="grid"></div>
+
+    <p class="footer-note">
+        Порада: намагайтеся запам’ятати розташування всіх карток.
+        Пари, які знайдено правильно, підсвічуються зеленим і залишаються відкритими.
+    </p>
+</div>
+
+<!-- Екран результатів -->
+<div class="container hidden" id="result-screen">
+    <h2>Вітаємо! 🎉 Ви пройшли всі рівні!</h2>
+    <p id="res-name"></p>
+    <p id="res-time"></p>
+    <p id="res-moves"></p>
+</div>
+
+<script>
+    // ---------------- НАЛАШТУВАННЯ ГРИ ----------------
+    const TOTAL_LEVELS = 6;
+    const baseCardsCount = 8;      // на 1 рівні
+    const cardsIncrement = 4;      // +4 картки на кожному наступному
+
+    const icons = [
+        "✈️","☂️","🚀","😀","🐱","⭐","⚽","🍎",
+        "🎧","📚","🚗","🌈","🎲","🏀","🎁"
+    ];
+
+    // ---------------- СТАН ГРИ ----------------
+    let playerName = "";
+    let currentLevel = 0;
+    let cards = [];
+    let openCards = [];
+    let matchedPairs = 0;
+    let moves = 0;
+
+    let timerId = null;
+    let totalSeconds = 0;
+
+    // ---------------- DOM ЕЛЕМЕНТИ ----------------
+    const startScreen = document.getElementById("start-screen");
+    const gameScreen  = document.getElementById("game-screen");
+    const startBtn    = document.getElementById("start-btn");
+    const playerInput = document.getElementById("player-name");
+    const gridEl      = document.getElementById("grid");
+
+    const levelLabel  = document.getElementById("level-label");
+    const matchesLabel= document.getElementById("matches-label");
+    const movesLabel  = document.getElementById("moves-label");
+    const topLevel    = document.getElementById("top-level");
+    const topTime     = document.getElementById("top-time");
+
+    const resultScreen = document.getElementById("result-screen");
+    const resName  = document.getElementById("res-name");
+    const resTime  = document.getElementById("res-time");
+    const resMoves = document.getElementById("res-moves");
+
+    // ---------------- ДОПОМІЖНІ ФУНКЦІЇ ----------------
+    function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        const mm = m < 10 ? "0" + m : m;
+        const ss = s < 10 ? "0" + s : s;
+        return mm + ":" + ss;
+    }
+
+    function startTimer() {
+        if (timerId !== null) return; // вже запущений
+        timerId = setInterval(() => {
+            totalSeconds++;
+            topTime.textContent = formatTime(totalSeconds);
+        }, 1000);
+    }
+
+    function stopTimer() {
+        if (timerId !== null) {
+            clearInterval(timerId);
+            timerId = null;
+        }
+    }
+
+    // ---------------- ЛОГІКА РІВНІВ ----------------
+    function startGame() {
+        startScreen.classList.add("hidden");
+        gameScreen.classList.remove("hidden");
+        resultScreen.classList.add("hidden");
+
+        currentLevel = 1;
+        totalSeconds = 0;
+        moves = 0;
+        topLevel.textContent = currentLevel;
+        topTime.textContent = "00:00";
+        startTimer();
+        initLevel();
+    }
+
+    function initLevel() {
+        const cardsCount = baseCardsCount + (currentLevel - 1) * cardsIncrement;
+        const pairsCount = cardsCount / 2;
+
+        const levelIcons = icons.slice(0, pairsCount);
+        cards = shuffle([...levelIcons, ...levelIcons]);
+
+        openCards = [];
+        matchedPairs = 0;
+
+        levelLabel.textContent   = currentLevel;
+        matchesLabel.textContent = matchedPairs + " / " + pairsCount;
+        movesLabel.textContent   = moves;
+        topLevel.textContent     = currentLevel;
+
+        gridEl.innerHTML = "";
+        cards.forEach((icon, index) => {
+            const cardEl = document.createElement("div");
+            cardEl.className = "card";
+            cardEl.dataset.index = index;
+            cardEl.textContent = "";     // прихований символ
+            gridEl.appendChild(cardEl);
+        });
+    }
+
+    function revealCard(index) {
+        const cardEls = gridEl.querySelectorAll(".card");
+        const cardEl = cardEls[index];
+
+        if (!cardEl || cardEl.classList.contains("matched") || cardEl.classList.contains("open")) {
+            return;
+        }
+        if (openCards.length === 2) return;
+
+        cardEl.classList.add("open");
+        cardEl.textContent = cards[index];
+        openCards.push({ index, value: cards[index], el: cardEl });
+
+        if (openCards.length === 2) {
+            moves++;
+            movesLabel.textContent = moves;
+            checkMatch();
+        }
+    }
+
+    function disableAllCards(disabled) {
+        const cardEls = gridEl.querySelectorAll(".card");
+        cardEls.forEach(c => {
+            if (disabled) c.classList.add("disabled");
+            else c.classList.remove("disabled");
+        });
+    }
+
+    function checkMatch() {
+        disableAllCards(true);
+        const [first, second] = openCards;
+
+        if (first.value === second.value) {
+            first.el.classList.remove("open");
+            second.el.classList.remove("open");
+            first.el.classList.add("matched");
+            second.el.classList.add("matched");
+
+            matchedPairs++;
+            const totalPairs = cards.length / 2;
+            matchesLabel.textContent = matchedPairs + " / " + totalPairs;
+
+            openCards = [];
+            disableAllCards(false);
+
+            if (matchedPairs === totalPairs) {
+                setTimeout(nextLevelOrFinish, 500);
+            }
+        } else {
+            setTimeout(() => {
+                first.el.classList.remove("open");
+                second.el.classList.remove("open");
+                first.el.textContent = "";
+                second.el.textContent = "";
+                openCards = [];
+                disableAllCards(false);
+            }, 700);
+        }
+    }
+
+    function nextLevelOrFinish() {
+        if (currentLevel < TOTAL_LEVELS) {
+            currentLevel++;
+            initLevel();
+        } else {
+            stopTimer();
+
+            const finalTime = totalSeconds;
+            const timeString = formatTime(finalTime);
+
+            gameScreen.classList.add("hidden");
+            resultScreen.classList.remove("hidden");
+
+            resName.textContent  = playerName ? `Учасник: ${playerName}` : "Учасник: —";
+            resTime.textContent  = `Час: ${timeString}`;
+            resMoves.textContent = `Спроб: ${moves}`;
+
+            // Конфеті 🎉
+            shootConfetti();
+
+            // Відправка результатів у чат-бот / бекенд
+            sendResultsToChatbot(playerName, finalTime, moves);
+        }
+    }
+
+    // ---------------- КОНФЕТІ ----------------
+    function shootConfetti() {
+        if (typeof confetti !== "function") return;
+
+        const duration = 2.5 * 1000;
+        const end = Date.now() + duration;
+
+        (function frame() {
+            confetti({
+                particleCount: 6,
+                startVelocity: 25,
+                spread: 360,
+                ticks: 70,
+                origin: { x: Math.random(), y: Math.random() - 0.2 }
+            });
+
+            if (Date.now() < end) {
+                requestAnimationFrame(frame);
+            }
+        })();
+    }
+
+    // ---------------- ІНТЕГРАЦІЯ З ЧАТ-БОТОМ ----------------
+    function sendResultsToChatbot(name, timeSeconds, movesCount) {
+        // TODO: тут реалізуєш відправку даних у свій чат-бот.
+        // Наприклад, через fetch на свій сервер або Telegram API.
+        console.log("Результати тесту:", { name, timeSeconds, movesCount });
+    }
+
+    // ---------------- ОБРОБКА ПОДІЙ ----------------
+    startBtn.addEventListener("click", () => {
+        playerName = playerInput.value.trim();
+        if (!playerName) {
+            if (!confirm("Ім’я не вказано. Продовжити без імені?")) {
+                return;
+            }
+        }
+        startGame();
+    });
+
+    gridEl.addEventListener("click", (e) => {
+        const cardEl = e.target.closest(".card");
+        if (!cardEl) return;
+        const index = parseInt(cardEl.dataset.index, 10);
+        revealCard(index);
+    });
+</script>
+</body>
+</html>
